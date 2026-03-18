@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PPI Marketing Intelligence Agent</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --ink: #0f0e0c; --paper: #f5f2ec; --cream: #ede9df;
+    --accent: #c84b2f; --accent2: #2a6e4e; --gold: #c8971f;
+    --muted: #7a756b; --border: #d4cfc5; --card: #faf8f4; --highlight: #fff8e8;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--paper); font-family:'DM Sans',sans-serif; color:var(--ink); min-height:100vh; }
+
+  header { background:var(--ink); color:var(--paper); padding:0 2.5rem; display:flex; align-items:center; justify-content:space-between; height:64px; border-bottom:3px solid var(--accent); }
+  .header-logo { font-family:'DM Serif Display',serif; font-size:1.4rem; letter-spacing:-0.02em; }
+  .header-logo span { color:var(--gold); }
+  .header-tag { font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); letter-spacing:0.12em; text-transform:uppercase; }
+
+  .layout { display:grid; grid-template-columns:430px 1fr; min-height:calc(100vh - 64px); }
+  .sidebar { background:var(--card); border-right:1px solid var(--border); padding:2rem; overflow-y:auto; max-height:calc(100vh - 64px); }
+
+  .section-label { font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent); margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem; }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  .form-group { margin-bottom:1.1rem; }
+  .form-group label { display:block; font-size:0.78rem; font-weight:500; color:var(--ink); margin-bottom:0.35rem; }
+  .form-group label .req { color:var(--accent); margin-left:2px; }
+  .form-hint { font-size:0.67rem; color:var(--muted); font-family:'DM Mono',monospace; margin-top:0.22rem; line-height:1.4; }
+
+  input,select,textarea { width:100%; background:var(--paper); border:1px solid var(--border); border-radius:6px; padding:0.55rem 0.75rem; font-family:'DM Sans',sans-serif; font-size:0.83rem; color:var(--ink); transition:border-color .15s,box-shadow .15s; appearance:none; -webkit-appearance:none; }
+  input:focus,select:focus,textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(200,75,47,.1); background:#fff; }
+  textarea { resize:vertical; min-height:72px; line-height:1.5; }
+  select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237a756b' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right .75rem center; padding-right:2rem; }
+  .row-2 { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+
+  .rate-pill { display:none; align-items:center; gap:.35rem; margin-top:.35rem; padding:.28rem .65rem; background:var(--ink); color:var(--gold); border-radius:4px; font-family:'DM Mono',monospace; font-size:.7rem; letter-spacing:.06em; font-weight:500; }
+  .rate-pill.visible { display:inline-flex; }
+
+  /* CAL PREVIEW */
+  .cal-preview-box { display:none; margin-top:.75rem; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .cal-preview-box.visible { display:block; }
+  .cal-preview-header { background:var(--ink); color:var(--paper); padding:.4rem .75rem; font-family:'DM Mono',monospace; font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; display:flex; justify-content:space-between; align-items:center; }
+  .cal-year-badge { background:var(--accent); color:#fff; padding:.1rem .4rem; border-radius:3px; font-size:.6rem; }
+  .cal-months-grid { display:grid; grid-template-columns:repeat(6,1fr); }
+  .cal-month-cell { padding:.4rem .2rem; text-align:center; border-right:1px solid var(--border); border-bottom:1px solid var(--border); font-size:.65rem; }
+  .cal-month-cell:nth-child(6n) { border-right:none; }
+  .cal-month-cell:nth-last-child(-n+6) { border-bottom:none; }
+  .cal-month-cell.in-year { background:#e8f5ee; color:var(--accent2); font-weight:700; }
+  .cal-month-cell.out-year { background:var(--paper); color:var(--muted); }
+  .cal-month-cell .m-label { display:block; font-family:'DM Mono',monospace; font-size:.6rem; }
+  .cal-month-cell .m-pct { display:block; font-size:.58rem; margin-top:.1rem; opacity:.75; }
+  .cal-preview-summary { padding:.5rem .75rem; background:var(--highlight); border-top:1px solid var(--border); font-size:.72rem; color:#6a3f0a; font-family:'DM Mono',monospace; letter-spacing:.04em; display:flex; justify-content:space-between; }
+
+  /* SAVINGS TYPE BADGE */
+  .savings-type-badge { display:none; align-items:center; gap:.4rem; margin-top:.4rem; padding:.4rem .7rem; border-radius:5px; font-family:'DM Mono',monospace; font-size:.7rem; letter-spacing:.06em; font-weight:500; animation:fadeIn .3s ease; }
+  .savings-type-badge.visible { display:flex; }
+  .savings-type-badge.material { background:#e8f0fe; color:#1a3a8a; border:1px solid #b8ccf8; }
+  .savings-type-badge.variance { background:#e8f5ee; color:#0a3a1f; border:1px solid #9fd4b8; }
+  .savings-type-badge.yield    { background:#fef6e0; color:#6a3f0a; border:1px solid #e8c96a; }
+  .savings-type-badge.other    { background:var(--cream); color:var(--muted); border:1px solid var(--border); }
+  .savings-type-badge .badge-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .savings-type-badge.material .badge-dot { background:#1a3a8a; }
+  .savings-type-badge.variance .badge-dot { background:#0a3a1f; }
+  .savings-type-badge.yield    .badge-dot { background:#c8971f; }
+  .savings-type-badge.other    .badge-dot { background:var(--muted); }
+  select.auto-set { border-color:var(--accent2); background-color:#f0faf5; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+
+  /* SG&A YIELD CALCULATOR */
+  .sga-toggle { display:flex; align-items:center; gap:.5rem; cursor:pointer; padding:.55rem .75rem; background:var(--highlight); border:1px solid var(--gold); border-radius:6px; font-size:.78rem; font-weight:500; color:#6a3f0a; transition:background .15s; user-select:none; margin-top:.5rem; }
+  .sga-toggle:hover { background:#fdeec0; }
+  .sga-toggle .sga-arrow { font-size:.65rem; transition:transform .2s; margin-left:auto; }
+  .sga-toggle.open .sga-arrow { transform:rotate(180deg); }
+  .sga-panel { display:none; border:1px solid var(--gold); border-top:none; border-radius:0 0 8px 8px; background:#fffdf5; padding:1rem; margin-bottom:.5rem; }
+  .sga-panel.open { display:block; }
+  .sga-formula-bar { background:var(--ink); color:var(--paper); border-radius:6px; padding:.55rem .85rem; font-family:'DM Mono',monospace; font-size:.72rem; letter-spacing:.04em; margin-bottom:.85rem; text-align:center; line-height:1.7; }
+  .sga-formula-bar .f-highlight { color:var(--gold); font-weight:600; }
+  .sga-inputs { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-bottom:.75rem; }
+  .sga-field label { font-size:.72rem; font-weight:500; color:var(--ink); display:block; margin-bottom:.25rem; }
+  .sga-field input { background:#fff; border:1px solid var(--border); border-radius:5px; padding:.45rem .6rem; font-family:'DM Mono',monospace; font-size:.82rem; color:var(--ink); width:100%; }
+  .sga-field input:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(200,151,31,.15); }
+  .sga-field .sga-prefix { position:relative; }
+  .sga-field .sga-prefix::before { content:'$'; position:absolute; left:.6rem; top:50%; transform:translateY(-50%); font-family:'DM Mono',monospace; font-size:.8rem; color:var(--muted); pointer-events:none; }
+  .sga-field .sga-prefix input { padding-left:1.4rem; }
+  .sga-calc-btn { width:100%; padding:.55rem; background:var(--gold); color:#fff; border:none; border-radius:5px; font-family:'DM Sans',sans-serif; font-size:.82rem; font-weight:600; cursor:pointer; transition:background .15s; }
+  .sga-calc-btn:hover { background:#b5861a; }
+  .sga-result { display:none; margin-top:.65rem; border-radius:7px; overflow:hidden; border:1px solid var(--border); }
+  .sga-result.visible { display:block; }
+  .sga-result-header { background:var(--accent2); color:#fff; padding:.45rem .85rem; font-family:'DM Mono',monospace; font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; }
+  .sga-result-body { padding:.7rem .85rem; background:#fff; }
+  .sga-result-main { font-family:'DM Serif Display',serif; font-size:1.6rem; color:var(--accent2); margin-bottom:.2rem; }
+  .sga-result-main.negative { color:var(--accent); }
+  .sga-result-steps { font-family:'DM Mono',monospace; font-size:.68rem; color:var(--muted); line-height:1.8; }
+  .sga-result-steps .step-val { color:var(--ink); font-weight:600; }
+  .sga-inject-btn { width:100%; margin-top:.55rem; padding:.45rem; background:var(--ink); color:var(--paper); border:none; border-radius:5px; font-size:.78rem; cursor:pointer; font-family:'DM Sans',sans-serif; transition:background .15s; }
+  .sga-inject-btn:hover { background:var(--accent); }
+
+  .submit-btn { width:100%; padding:.9rem; background:var(--ink); color:var(--paper); border:none; border-radius:6px; font-family:'DM Serif Display',serif; font-size:1.05rem; cursor:pointer; transition:background .2s,transform .1s; margin-top:1.5rem; display:flex; align-items:center; justify-content:center; gap:.5rem; }
+  .submit-btn:hover { background:var(--accent); }
+  .submit-btn:active { transform:scale(.99); }
+  .submit-btn.loading { opacity:.7; cursor:not-allowed; }
+  .submit-btn .spinner { width:16px; height:16px; border:2px solid rgba(255,255,255,.3); border-top-color:white; border-radius:50%; animation:spin .7s linear infinite; display:none; }
+  .submit-btn.loading .spinner { display:block; }
+  .submit-btn.loading .btn-text { display:none; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  .main { padding:2rem 2.5rem; overflow-y:auto; max-height:calc(100vh - 64px); display:flex; flex-direction:column; gap:1.5rem; }
+
+  .agent-intro { background:var(--ink); color:var(--paper); border-radius:12px; padding:1.5rem 2rem; position:relative; overflow:hidden; }
+  .agent-intro::before { content:''; position:absolute; top:-40px; right:-40px; width:160px; height:160px; background:radial-gradient(circle,rgba(200,75,47,.3) 0%,transparent 70%); }
+  .agent-name { font-family:'DM Serif Display',serif; font-size:1.5rem; margin-bottom:.3rem; }
+  .agent-name em { color:var(--gold); font-style:normal; }
+  .agent-subtitle { font-size:.82rem; color:rgba(245,242,236,.65); font-family:'DM Mono',monospace; letter-spacing:.05em; }
+
+  .empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; height:300px; text-align:center; color:var(--muted); gap:.75rem; }
+  .empty-icon { width:56px; height:56px; background:var(--cream); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.5rem; }
+  .empty-state p { font-size:.85rem; max-width:300px; line-height:1.6; }
+
+  .thinking-overlay { display:none; background:#fff; border:1px solid var(--border); border-radius:12px; padding:2rem; text-align:center; }
+  .thinking-overlay.active { display:block; }
+  .thinking-dots { display:flex; justify-content:center; gap:.4rem; margin-bottom:1rem; }
+  .thinking-dots span { width:8px; height:8px; background:var(--accent); border-radius:50%; animation:bounce 1.2s infinite; }
+  .thinking-dots span:nth-child(2){animation-delay:.2s} .thinking-dots span:nth-child(3){animation-delay:.4s}
+  @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-8px)} }
+  .thinking-text { font-family:'DM Mono',monospace; font-size:.78rem; color:var(--muted); }
+
+  .result-card { background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; animation:slideUp .4s ease; }
+  @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+  .result-header { background:var(--ink); color:var(--paper); padding:1rem 1.5rem; display:flex; align-items:center; justify-content:space-between; }
+  .result-project-name { font-family:'DM Serif Display',serif; font-size:1.15rem; }
+  .result-meta { font-family:'DM Mono',monospace; font-size:.68rem; color:rgba(245,242,236,.5); text-align:right; line-height:1.7; }
+
+  .scorecard { display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid var(--border); }
+  .score-cell { padding:1rem 1.2rem; border-right:1px solid var(--border); text-align:center; }
+  .score-cell:last-child{border-right:none;}
+  .score-value { font-family:'DM Serif Display',serif; font-size:1.5rem; color:var(--ink); line-height:1; margin-bottom:.2rem; }
+  .score-value.green{color:var(--accent2)} .score-value.amber{color:var(--gold)} .score-value.red{color:var(--accent)}
+  .score-label { font-size:.68rem; font-family:'DM Mono',monospace; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+
+  .savings-breakdown { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid var(--border); }
+  .sav-cell { padding:.85rem 1.2rem; border-right:1px solid var(--border); }
+  .sav-cell:last-child{border-right:none;}
+  .sav-cell-label { font-family:'DM Mono',monospace; font-size:.62rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:.35rem; }
+  .sav-cell-value { font-family:'DM Serif Display',serif; font-size:1.25rem; }
+  .sav-cell-value.green{color:var(--accent2)} .sav-cell-value.amber{color:var(--gold)}
+  .sav-cell-sub { font-size:.7rem; color:var(--muted); margin-top:.15rem; font-family:'DM Mono',monospace; }
+
+  .month-strip { display:grid; grid-template-columns:repeat(12,1fr); border:1px solid var(--border); border-radius:6px; overflow:hidden; margin-top:.4rem; }
+  .month-strip-cell { padding:.3rem 0; text-align:center; border-right:1px solid var(--border); font-size:.58rem; font-family:'DM Mono',monospace; }
+  .month-strip-cell:last-child{border-right:none;}
+  .month-strip-cell.ms-in { background:#e8f5ee; color:var(--accent2); font-weight:700; }
+  .month-strip-cell.ms-out { background:var(--paper); color:#ccc; }
+  .month-strip-cell .ms-name { display:block; font-size:.5rem; opacity:.7; }
+
+  .analysis-body { padding:1.5rem; }
+  .analysis-section { margin-bottom:1.5rem; }
+  .analysis-section:last-child{margin-bottom:0;}
+  .analysis-title { font-family:'DM Mono',monospace; font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin-bottom:.6rem; }
+  .analysis-text { font-size:.85rem; line-height:1.65; color:#2a2825; }
+
+  .tags { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.6rem; }
+  .tag { font-family:'DM Mono',monospace; font-size:.68rem; padding:.25rem .65rem; border-radius:3px; letter-spacing:.05em; }
+  .tag-blue{background:#e8f0fe;color:#1a56b0} .tag-green{background:#e8f5ee;color:#1a5c38} .tag-amber{background:#fef6e0;color:#8a5f0a}
+
+  .insight-grid { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-top:.6rem; }
+  .insight-box { border-radius:8px; padding:.85rem 1rem; font-size:.82rem; line-height:1.55; }
+  .insight-box.risk{background:#fde8e4;color:#5a1f0a;border-left:3px solid var(--accent)}
+  .insight-box.opportunity{background:#e8f5ee;color:#0a3a1f;border-left:3px solid var(--accent2)}
+  .insight-box strong { display:block; font-size:.72rem; font-family:'DM Mono',monospace; letter-spacing:.08em; text-transform:uppercase; margin-bottom:.3rem; }
+
+  .timeline { display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-top:.65rem; }
+  .timeline-step { flex:1; padding:.65rem .5rem; text-align:center; border-right:1px solid var(--border); font-size:.75rem; background:var(--paper); }
+  .timeline-step:last-child{border-right:none;}
+  .timeline-step.active{background:var(--ink);color:var(--paper);}
+  .timeline-step .step-n { font-family:'DM Mono',monospace; font-size:.6rem; opacity:.55; display:block; margin-bottom:.2rem; }
+
+  .history-section{margin-top:1rem;}
+  .history-title { font-family:'DM Mono',monospace; font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:.75rem; display:flex; align-items:center; gap:.5rem; }
+  .history-title::after{content:'';flex:1;height:1px;background:var(--border);}
+  .history-item { display:flex; align-items:center; gap:.75rem; padding:.65rem .85rem; background:var(--card); border:1px solid var(--border); border-radius:8px; margin-bottom:.5rem; cursor:pointer; transition:border-color .15s; }
+  .history-item:hover{border-color:var(--accent);}
+  .history-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .history-info{flex:1;}
+  .history-name{font-size:.82rem;font-weight:500;}
+  .history-meta{font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;}
+  .history-impact{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--accent2);}
+
+  ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:transparent;} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+  @media(max-width:900px){.layout{grid-template-columns:1fr;}.sidebar,.main{max-height:none;}.scorecard{grid-template-columns:repeat(2,1fr);}.insight-grid{grid-template-columns:1fr;}.savings-breakdown{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">PPI <span>Intelligence</span> Agent</div>
+  <div class="header-tag">Marketing Process Improvement · 6σ Aligned</div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+
+    <div class="section-label">Project Identity</div>
+    <div class="form-group">
+      <label>Project Name <span class="req">*</span></label>
+      <input type="text" id="projectName" placeholder="e.g. Email Automation Overhaul Q2">
+    </div>
+    <div class="row-2">
+      <div class="form-group">
+        <label>Submitter Name</label>
+        <input type="text" id="submitterName" placeholder="Full name">
+      </div>
+      <div class="form-group">
+        <label>Date Submitted <span class="req">*</span></label>
+        <input type="date" id="dateSubmitted" onchange="onDateChange()">
+        <div class="form-hint">↳ savings window starts here</div>
+      </div>
+    </div>
+    <div class="row-2">
+      <div class="form-group">
+        <label>Marketing Team <span class="req">*</span></label>
+        <select id="marketingTeam" onchange="onTeamChange()">
+          <option value="">— Select —</option>
+          <option>Brand &amp; Creative</option>
+          <option>Demand Generation</option>
+          <option>Content Marketing</option>
+          <option>Product Marketing</option>
+          <option>Marketing Operations</option>
+          <option>Social &amp; Community</option>
+          <option>Paid Media</option>
+          <option>Field Marketing</option>
+          <option>Analytics &amp; Insights</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Marketing Tactic</label>
+        <select id="marketingTactic" onchange="onTacticChange()">
+          <option value="">— Tactic —</option>
+          <option>Email Marketing</option>
+          <option>Content / SEO</option>
+          <option>Paid Search (SEM)</option>
+          <option>Paid Social</option>
+          <option>Organic Social</option>
+          <option>Events / Webinars</option>
+          <option>Account-Based Marketing</option>
+          <option>Marketing Automation / CRM</option>
+          <option>Campaign Management</option>
+          <option>Reporting &amp; Analytics</option>
+          <option>Creative Production</option>
+          <option>Cross-Tactic / Operational</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Geography / Region <span class="req">*</span></label>
+      <select id="region" onchange="onRegionChange()">
+        <option value="">— Select —</option>
+        <option value="NAM"     data-rate="82">NAM ($82/hr)</option>
+        <option value="LATAM"   data-rate="29">LATAM ($29/hr)</option>
+        <option value="EMEA"    data-rate="61">EMEA ($61/hr)</option>
+        <option value="APJ"     data-rate="41">APJ / IPAC ($41/hr)</option>
+        <option value="GC"      data-rate="52">GC — China ($52/hr)</option>
+        <option value="IN"      data-rate="11">India ($11/hr)</option>
+        <option value="Global"  data-rate="63">Global ($63/hr)</option>
+        <option value="Blended" data-rate="46.5">Blended US+IN ($46.50/hr)</option>
+      </select>
+      <div class="rate-pill" id="ratePill">⚡ <span id="ratePillText"></span></div>
+    </div>
+
+    <div class="cal-preview-box" id="calPreviewBox">
+      <div class="cal-preview-header">
+        <span>Current-Year Savings Window</span>
+        <span class="cal-year-badge" id="calYearBadge"></span>
+      </div>
+      <div class="cal-months-grid" id="calMonthsGrid"></div>
+      <div class="cal-preview-summary">
+        <span id="calSummaryLeft"></span>
+        <span id="calSummaryRight"></span>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:1.2rem">Project Details</div>
+    <div class="row-2">
+      <div class="form-group">
+        <label>Project Status</label>
+        <select id="projectStatus">
+          <option value="">— Status —</option>
+          <option>Idea / Proposed</option>
+          <option>In Progress</option>
+          <option>Pilot / Testing</option>
+          <option>Implemented</option>
+          <option>Measuring Results</option>
+          <option>Completed</option>
+          <option>On Hold</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Complexity</label>
+        <select id="complexity">
+          <option value="">— Level —</option>
+          <option>Low (JDI)</option>
+          <option>Medium</option>
+          <option>High</option>
+          <option>Strategic</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>PPI Tool Involved</label>
+      <select id="ppiTool">
+        <option value="">— Tool —</option>
+        <option>AI</option>
+        <option>Automation</option>
+        <option>PPI 8 Steps</option>
+        <option>PPI JDI (Just Do It)</option>
+        <option>AI + Automation</option>
+        <option>Multiple Tools</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Project Description <span class="req">*</span></label>
+      <textarea id="projectDesc" rows="3" placeholder="Describe the improvement initiative — what changed, how it was implemented…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Savings Calculations &amp; Project Impact <span class="req">*</span></label>
+      <textarea id="savingsCalc" rows="3" placeholder="e.g. 'Saves 8 hrs/week × 52 wks = 416 hrs/yr. Apply regional rate for dollar value.'"></textarea>
+    </div>
+
+    <!-- SG&A YIELD CALCULATOR — Paid Media only -->
+    <div id="sgaWrapper" style="display:none">
+      <div id="sgaToggle" class="sga-toggle" onclick="toggleSGA()">
+        <span>📈</span>
+        <span><strong>SG&amp;A Yield / ROI Calculator</strong> — Paid Media campaign savings</span>
+        <span class="sga-arrow" id="sgaArrow">▼</span>
+      </div>
+      <div id="sgaPanel" class="sga-panel">
+
+        <!-- COMPARISON PERIOD -->
+        <div class="sga-period-row">
+          <div style="font-family:'DM Mono',monospace;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);margin-bottom:.5rem;display:flex;align-items:center;gap:.4rem">
+            <span>📅</span> Comparison Period <span style="font-size:.6rem;color:var(--muted);text-transform:none;letter-spacing:0;font-family:'DM Sans',sans-serif;font-weight:400">(optional — overrides 12-month rollover)</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.75rem">
+            <div class="sga-field">
+              <label>Period Start</label>
+              <input type="date" id="periodStart" onchange="onPeriodChange()">
+            </div>
+            <div class="sga-field">
+              <label>Period End</label>
+              <input type="date" id="periodEnd" onchange="onPeriodChange()">
+            </div>
+          </div>
+          <div id="periodPreview" style="display:none;margin-bottom:.75rem;background:var(--ink);border-radius:6px;padding:.5rem .8rem;font-family:'DM Mono',monospace;font-size:.68rem;color:var(--paper);line-height:1.7">
+            <span id="periodPreviewText"></span>
+          </div>
+        </div>
+
+        <div class="sga-formula-bar">
+          <span class="f-highlight">PPI Savings</span> =
+          (PY Expense ÷ PY Revenue) × (CY Revenue − CY Expense)
+        </div>
+        <div class="sga-inputs">
+          <div class="sga-field">
+            <label>Past Year Actual Revenue</label>
+            <div class="sga-prefix"><input type="number" id="sgaPYRev" placeholder="e.g. 100000" oninput="calcSGA()"></div>
+          </div>
+          <div class="sga-field">
+            <label>Current Year Actual Revenue</label>
+            <div class="sga-prefix"><input type="number" id="sgaCYRev" placeholder="e.g. 200000" oninput="calcSGA()"></div>
+          </div>
+          <div class="sga-field">
+            <label>Past Year Actual Expense</label>
+            <div class="sga-prefix"><input type="number" id="sgaPYExp" placeholder="e.g. 50000" oninput="calcSGA()"></div>
+          </div>
+          <div class="sga-field">
+            <label>Current Year Actual Expense</label>
+            <div class="sga-prefix"><input type="number" id="sgaCYExp" placeholder="e.g. 75000" oninput="calcSGA()"></div>
+          </div>
+        </div>
+
+        <div id="sgaResult" class="sga-result">
+          <div class="sga-result-header">SG&amp;A Efficiency / PPI Savings</div>
+          <div class="sga-result-body">
+            <div id="sgaMainResult" class="sga-result-main"></div>
+            <div id="sgaSteps" class="sga-result-steps"></div>
+            <button class="sga-inject-btn" onclick="injectSGAResult()">↑ Use this result in Savings Calculations field</button>
+          </div>
+        </div>
+
+        <div style="margin-top:.65rem;padding:.5rem .7rem;background:var(--cream);border-radius:5px;font-size:.7rem;color:var(--muted);line-height:1.55;font-family:'DM Mono',monospace">
+          <strong style="color:var(--ink)">Efficiency Gain (SG&amp;A) applies when:</strong><br>
+          Output ↑↑ &amp; Resources ↑ &nbsp;|&nbsp; Output ↑ &amp; Resources →<br>
+          Positive result = improved revenue efficiency relative to past year spend ratio.
+        </div>
+      </div>
+    </div>
+
+
+
+    <div class="form-group">
+      <label>Productivity Savings Type <span style="color:var(--accent2);font-size:.68rem;font-family:'DM Mono',monospace;font-weight:400">· auto-detected</span></label>
+      <select id="savingsType">
+        <option value="">— AI will detect —</option>
+        <option>Standard Work Variance (Time)</option>
+        <option>Material / Sourcing (Monetary)</option>
+        <option>Yield / ROI Improvements</option>
+        <option>Other</option>
+      </select>
+      <div class="savings-type-badge" id="savingsTypeBadge">
+        <div class="badge-dot"></div>
+        <span id="savingsTypeBadgeText"></span>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="analyzeProject()">
+      <div class="spinner"></div>
+      <span class="btn-text">⚡ Analyze &amp; Calculate Impact</span>
+    </button>
+  </aside>
+
+  <main class="main">
+    <div class="agent-intro">
+      <div class="agent-name">PPI <em>Intelligence</em> Agent</div>
+      <div class="agent-subtitle">Practical Process Improvement · Impact Estimator · 6σ Methodology</div>
+    </div>
+
+    <div id="thinkingOverlay" class="thinking-overlay">
+      <div class="thinking-dots"><span></span><span></span><span></span></div>
+      <div class="thinking-text" id="thinkingText">Analyzing project inputs…</div>
+    </div>
+
+    <div id="resultsArea">
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <strong>Submit a project to begin</strong>
+        <p>Savings are calculated from the Date of Submitted — 12-month rollover window, with current calendar year credit only.</p>
+      </div>
+    </div>
+
+    <div id="historySection" class="history-section" style="display:none">
+      <div class="history-title">Previous Submissions</div>
+      <div id="historyList"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+//  CONSTANTS
+// ─────────────────────────────────────────
+const RATES  = {NAM:82,LATAM:29,EMEA:61,APJ:41,GC:52,IN:11,Global:63,Blended:46.5};
+const RLABEL = {NAM:'North America',LATAM:'LATAM',EMEA:'EMEA',APJ:'APJ/IPAC',GC:'Greater China',IN:'India',Global:'Global',Blended:'Blended US+IN'};
+const MO     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ─────────────────────────────────────────
+//  REGION CHANGE
+// ─────────────────────────────────────────
+function onRegionChange() {
+  const sel  = document.getElementById('region');
+  const rate = RATES[sel.value];
+  const pill = document.getElementById('ratePill');
+  if (rate) {
+    pill.classList.add('visible');
+    document.getElementById('ratePillText').textContent = '$' + rate + '/hr — ' + (RLABEL[sel.value] || sel.value);
+  } else {
+    pill.classList.remove('visible');
+  }
+}
+
+// ─────────────────────────────────────────
+//  SAVINGS WINDOW
+//
+//  Logic:
+//  1. Start date = Date of Submission
+//  2. 12-month rollover window from that date
+//  3. Count only months in CURRENT calendar year
+//  4. currentYearSavings = total12Mo × (months in current year / 12)
+// ─────────────────────────────────────────
+function computeSavingsWindow(submittedStr) {
+  if (!submittedStr) return null;
+  const sub  = new Date(submittedStr + 'T00:00:00');
+  const curY = new Date().getFullYear();
+
+  // Build the 12 calendar months starting from submission month
+  const allMonths = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(sub.getFullYear(), sub.getMonth() + i, 1);
+    allMonths.push({ year: d.getFullYear(), month: d.getMonth() });
+  }
+
+  // Keep only those in current calendar year
+  const inYear = allMonths.filter(m => m.year === curY);
+
+  return {
+    submissionDate:    sub,
+    windowStartLabel:  MO[sub.getMonth()] + ' ' + sub.getFullYear(),
+    windowEndDate:     new Date(sub.getFullYear(), sub.getMonth() + 12, 0),
+    currentYear:       curY,
+    allMonths,
+    inYearMonths:      inYear,
+    monthsInYear:      inYear.length,
+    fraction:          inYear.length / 12,
+  };
+}
+
+// ─────────────────────────────────────────
+//  SAVINGS WINDOW — from explicit period range (Paid Media)
+//
+//  When a period start/end is entered, we use those exact dates as the
+//  savings window instead of the 12-month rollover. We still apply the
+//  same rule: count only months overlapping the current calendar year.
+//  The "12-month rollover" logic is preserved as the fallback when no
+//  period is entered.
+// ─────────────────────────────────────────
+function computeSavingsWindowFromPeriod(startStr, endStr) {
+  if (!startStr || !endStr) return null;
+  const start  = new Date(startStr + 'T00:00:00');
+  const end    = new Date(endStr   + 'T00:00:00');
+  const curY   = new Date().getFullYear();
+
+  // Enumerate every calendar month the period touches
+  const allMonths = [];
+  const cur = new Date(start.getFullYear(), start.getMonth(), 1);
+  const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+  while (cur <= endMonth) {
+    allMonths.push({ year: cur.getFullYear(), month: cur.getMonth() });
+    cur.setMonth(cur.getMonth() + 1);
+  }
+
+  const totalMonths = allMonths.length || 1;
+  const inYear      = allMonths.filter(m => m.year === curY);
+
+  // Format labels
+  const fmtDate = d => MO[d.getMonth()] + ' ' + d.getFullYear();
+
+  return {
+    submissionDate:    start,
+    windowStartLabel:  fmtDate(start),
+    windowEndDate:     end,
+    currentYear:       curY,
+    allMonths,
+    inYearMonths:      inYear,
+    monthsInYear:      inYear.length,
+    totalMonths,
+    fraction:          inYear.length / totalMonths,
+    isPeriodOverride:  true,
+    periodLabel:       fmtDate(start) + ' → ' + fmtDate(end),
+  };
+}
+
+function onPeriodChange() {
+  const ps  = document.getElementById('periodStart').value;
+  const pe  = document.getElementById('periodEnd').value;
+  const box = document.getElementById('periodPreview');
+  const txt = document.getElementById('periodPreviewText');
+
+  if (!ps || !pe || ps > pe) { box.style.display = 'none'; updateCalFromActiveWindow(); return; }
+
+  const w   = computeSavingsWindowFromPeriod(ps, pe);
+  if (!w) { box.style.display = 'none'; return; }
+
+  box.style.display = 'block';
+  const pct = Math.round(w.fraction * 100);
+  txt.innerHTML =
+    '📅 Period: <span style="color:var(--gold)">' + w.periodLabel + '</span>'
+    + ' &nbsp;·&nbsp; ' + w.totalMonths + ' months total'
+    + '<br>✓ Months in ' + w.currentYear + ': <span style="color:var(--gold)">'
+    + (w.inYearMonths.length ? w.inYearMonths.map(m => MO[m.month]).join(', ') : 'none')
+    + '</span> (' + w.monthsInYear + '/' + w.totalMonths + ' = ' + pct + '% credit)'
+    + '<br><span style="color:#aaa;font-size:.6rem">↑ This period overrides the 12-month rollover for savings apportionment</span>';
+
+  // Refresh the top-level cal preview to reflect period window
+  updateCalFromActiveWindow();
+}
+
+function updateCalFromActiveWindow() {
+  // The top-form calendar always reflects the rolling 12-month window.
+  // The period comparison preview is shown separately inside the SG&A panel.
+  const dateStr = document.getElementById('dateSubmitted').value;
+  if (dateStr) {
+    renderCalPreview(computeSavingsWindow(dateStr));
+  } else {
+    document.getElementById('calPreviewBox').classList.remove('visible');
+  }
+}
+
+function renderCalPreview(w) {
+  if (!w) { document.getElementById('calPreviewBox').classList.remove('visible'); return; }
+  document.getElementById('calPreviewBox').classList.add('visible');
+  document.getElementById('calYearBadge').textContent = w.currentYear;
+
+  const inMonthNums = new Set(w.inYearMonths.map(m => m.month));
+  let html = '';
+  for (let m = 0; m < 12; m++) {
+    const active = inMonthNums.has(m);
+    html += '<div class="cal-month-cell ' + (active ? 'in-year' : 'out-year') + '">'
+          + '<span class="m-label">' + MO[m] + '</span>'
+          + '<span class="m-pct">'   + (active ? '✓' : '—') + '</span>'
+          + '</div>';
+  }
+  document.getElementById('calMonthsGrid').innerHTML = html;
+
+  const pct = Math.round(w.fraction * 100);
+  document.getElementById('calSummaryLeft').textContent  = w.monthsInYear + ' of 12 months in ' + w.currentYear + ' (12-mo rollover)';
+  document.getElementById('calSummaryRight').textContent = pct + '% savings credited';
+}
+
+// ─────────────────────────────────────────
+//  DATE CHANGE → update cal preview (falls back if period overrides)
+// ─────────────────────────────────────────
+function onDateChange() {
+  updateCalFromActiveWindow();
+}
+function getFormData() {
+  const regSel = document.getElementById('region');
+  const region = regSel.value;
+  const rate   = RATES[region] || null;
+  const dateStr     = document.getElementById('dateSubmitted').value;
+  const periodStart = document.getElementById('periodStart').value;
+  const periodEnd   = document.getElementById('periodEnd').value;
+
+  const hasPeriod     = !!(periodStart && periodEnd && periodStart <= periodEnd);
+  const periodWindow  = hasPeriod ? computeSavingsWindowFromPeriod(periodStart, periodEnd) : null;
+  const rollingWindow = computeSavingsWindow(dateStr);
+
+  return {
+    projectName:    document.getElementById('projectName').value.trim(),
+    submitterName:  document.getElementById('submitterName').value.trim(),
+    marketingTeam:  document.getElementById('marketingTeam').value,
+    dateSubmitted:  dateStr,
+    periodStart:    periodStart || null,
+    periodEnd:      periodEnd   || null,
+    hasPeriod,
+    region,
+    hourlyRate:     rate,
+    projectDesc:    document.getElementById('projectDesc').value.trim(),
+    savingsCalc:    document.getElementById('savingsCalc').value.trim(),
+    projectStatus:  document.getElementById('projectStatus').value,
+    complexity:     document.getElementById('complexity').value,
+    ppiTool:        document.getElementById('ppiTool').value,
+    savingsType:    document.getElementById('savingsType').value,
+    marketingTactic:document.getElementById('marketingTactic').value,
+    window:         rollingWindow,
+    periodWindow,
+    rollingWindow,
+  };
+}
+
+// ─────────────────────────────────────────
+//  BUILD PROMPT
+// ─────────────────────────────────────────
+function buildPrompt(d) {
+  const rate = d.hourlyRate || 63;
+  const rateDesc = d.region
+    ? d.region + ' (' + (RLABEL[d.region]||d.region) + ') = $' + rate + '/hr'
+    : 'Global default = $' + rate + '/hr';
+
+  const w        = d.rollingWindow;
+  const curY     = w ? w.currentYear  : new Date().getFullYear();
+  const rMo      = w ? w.monthsInYear : 12;
+  const rPct     = Math.round((rMo / 12) * 100);
+  const rLabels  = w && w.inYearMonths.length ? w.inYearMonths.map(m => MO[m.month]).join(', ') : 'None';
+  const rStart   = w ? w.windowStartLabel : 'submission date';
+  const rEnd     = w ? (MO[w.windowEndDate.getMonth()] + ' ' + w.windowEndDate.getFullYear()) : '12 months later';
+
+  // Always include the 12-month rolling window
+  let windowBlock =
+    'A) 12-MONTH ROLLING WINDOW (always required):\n'
+    + '   Starts: ' + (d.dateSubmitted||'?') + ' → Ends: ' + rStart + ' → ' + rEnd + '\n'
+    + '   Months in ' + curY + ': ' + rLabels + ' (' + rMo + ' of 12 = ' + rPct + '%)\n'
+    + '   STEP A1 — total_savings_12mo: annualise from savingsCalc\n'
+    + '     • Time: hours_per_week × 52 × $' + rate + '\n'
+    + '     • Monetary: stated annual dollar amount\n'
+    + '   STEP A2 — rolling_year_savings = total_savings_12mo × (' + rMo + '/12)\n\n';
+
+  // When a period is also entered, add it as a second calculation
+  if (d.hasPeriod && d.periodWindow) {
+    const pw    = d.periodWindow;
+    const pMo   = pw.monthsInYear;
+    const pTot  = pw.totalMonths || 1;
+    const pPct  = Math.round((pMo / pTot) * 100);
+    const pLabs = pw.inYearMonths.length ? pw.inYearMonths.map(m => MO[m.month]).join(', ') : 'None';
+    windowBlock +=
+      'B) PAID MEDIA COMPARISON PERIOD (in addition to A):\n'
+      + '   Period: ' + d.periodStart + ' → ' + d.periodEnd + ' (' + pTot + ' months total)\n'
+      + '   STEP B1 — total_savings_period: SG&A savings across the comparison period (from savingsCalc)\n'
+      + '   STEP B2 — monthly_rate = total_savings_period ÷ ' + pTot + ' (number of comparison months)\n'
+      + '   STEP B3 — period_year_savings = monthly_rate × ' + rMo + ' (rolling window months in ' + curY + ')\n'
+      + '           = (total_savings_period / ' + pTot + ') × ' + rMo + '\n'
+      + '   This spreads the per-month efficiency rate over the current-year rolling window.\n'
+      + '   Return period_savings_total (B1), monthly_rate (B2), and period_year_savings (B3) in your JSON.\n\n'
+      + 'Show all three steps clearly in impactBreakdown under a "B — Paid Media Period" heading.\n';
+  } else {
+    windowBlock += 'No comparison period entered — report rolling window figures only.\n';
+  }
+
+  return 'You are a PPI (Practical Process Improvement) analyst. Analyze this marketing project and return ONLY a valid JSON object — no markdown fences, no preamble, no extra text.\n\n'
+    + 'PROJECT INPUTS:\n'
+    + '- Name: '             + d.projectName                   + '\n'
+    + '- Team: '             + (d.marketingTeam||'N/A')        + '\n'
+    + '- Submitter: '        + (d.submitterName||'N/A')        + '\n'
+    + '- Date Submitted: '   + (d.dateSubmitted||'N/A')        + '\n'
+    + (d.hasPeriod ? '- Comparison Period: ' + d.periodStart + ' → ' + d.periodEnd + '\n' : '')
+    + '- Status: '           + (d.projectStatus||'N/A')        + '\n'
+    + '- Complexity: '       + (d.complexity||'N/A')           + '\n'
+    + '- PPI Tool: '         + (d.ppiTool||'N/A')              + '\n'
+    + '- Marketing Tactic: ' + (d.marketingTactic||'N/A')      + '\n'
+    + '- Region: '           + (d.region||'N/A')               + '\n'
+    + '- Hourly Rate: $'     + rate + '/hr (' + rateDesc + ')' + '\n'
+    + '- User Savings Type: '+ (d.savingsType||'blank — you must auto-detect') + '\n'
+    + '- Description: '      + d.projectDesc                   + '\n'
+    + '- Savings Details: '  + d.savingsCalc                   + '\n\n'
+    + '════ SAVINGS CALCULATION RULES — follow exactly ════\n\n'
+    + windowBlock + '\n'
+    + '════ SAVINGS TYPE — auto-detect from description ════\n'
+    + '1. "Standard Work Variance (Time)" — time/resource savings from process, platform or tech change\n'
+    + '2. "Material / Sourcing (Monetary)" — lower cost per item\n'
+    + '3. "Yield / ROI Improvements" — improved value for spend vs. baseline\n'
+    + '4. "Other" — only if none of the above clearly fit\n\n'
+    + 'Return EXACTLY this JSON (all fields required):\n'
+    + '{\n'
+    + '  "autoDetectedSavingsType": "<Standard Work Variance (Time) | Material / Sourcing (Monetary) | Yield / ROI Improvements | Other>",\n'
+    + '  "savingsTypeReasoning": "<1-2 sentences>",\n'
+    + '  "savingsTypeConfidence": "<Low | Medium | High>",\n'
+    + '  "hourlyRateUsed": "$' + rate + '/hr — ' + rateDesc + '",\n'
+    + '  "totalSavings12Mo": "<12-month rolling savings, e.g. $27,040>",\n'
+    + '  "currentYearMonths": ' + rMo + ',\n'
+    + '  "currentYearFraction": "' + rMo + '/12",\n'
+    + '  "currentYearPct": ' + rPct + ',\n'
+    + '  "currentYearSavings": "<rolling window ' + curY + ' credited savings>",\n'
+    + '  "currentYear": ' + curY + ',\n'
+    + (d.hasPeriod
+        ? '  "periodSavingsTotal": "<savings across full comparison period>",\n'
+        + '  "periodMonthlyRate": "<period savings ÷ comparison months, e.g. $33,336/mo>",\n'
+        + '  "periodYearSavings": "<monthly rate × rolling window months in ' + curY + '>",\n'
+        + '  "periodLabel": "' + (d.periodStart||'') + ' → ' + (d.periodEnd||'') + '",\n'
+        : '')
+    + '  "impactScore": <1-100>,\n'
+    + '  "efficiencyGain": "<% or hrs/week>",\n'
+    + '  "roiMultiplier": "<e.g. 3.2x or null>",\n'
+    + '  "confidenceLevel": "<Low | Medium | High>",\n'
+    + '  "executiveSummary": "<2-3 sentences>",\n'
+    + '  "impactBreakdown": "<step-by-step for both A and B windows if applicable>",\n'
+    + '  "ppiAlignment": "<1-2 sentences>",\n'
+    + '  "risks": ["<risk 1>", "<risk 2>"],\n'
+    + '  "opportunities": ["<opp 1>", "<opp 2>"],\n'
+    + '  "nextSteps": ["<step 1>", "<step 2>", "<step 3>"],\n'
+    + '  "ppiStageRecommendation": "<Define | Measure | Analyze | Improve | Control>",\n'
+    + '  "benchmarkContext": "<1-2 sentences>",\n'
+    + '  "tags": ["<tag1>", "<tag2>", "<tag3>"]\n'
+    + '}';
+}
+
+// ─────────────────────────────────────────
+//  ANALYZE
+// ─────────────────────────────────────────
+const projectHistory = [];
+const thinkingMsgs   = [
+  'Reading project inputs…',
+  'Applying $' + '?/hr regional rate…',
+  'Computing 12-month savings window…',
+  'Apportioning to current calendar year…',
+  'Auto-detecting savings type…',
+  'Generating impact analysis…'
+];
+
+async function analyzeProject() {
+  const data = getFormData();
+  if (!data.projectName)    { alert('Please enter a Project Name.');          return; }
+  if (!data.marketingTeam)  { alert('Please select a Marketing Team.');        return; }
+  if (!data.projectDesc)    { alert('Please enter a Project Description.');    return; }
+  if (!data.savingsCalc)    { alert('Please enter Savings Calculations.');     return; }
+  if (!data.dateSubmitted)  { alert('Please enter the Date Submitted — it drives the savings window.'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  document.getElementById('resultsArea').innerHTML = '';
+  const overlay = document.getElementById('thinkingOverlay');
+  overlay.classList.add('active');
+  document.getElementById('thinkingText').textContent = thinkingMsgs[0];
+
+  let mi = 0;
+  const ticker = setInterval(() => {
+    mi = (mi + 1) % thinkingMsgs.length;
+    document.getElementById('thinkingText').textContent = thinkingMsgs[mi];
+  }, 1600);
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: buildPrompt(data) }]
+      })
+    });
+    const result = await resp.json();
+    const raw    = (result.content || []).map(b => b.text || '').join('');
+    let ai = null;
+    try { ai = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
+    catch(e) { console.error('Parse error:', raw); }
+
+    clearInterval(ticker);
+    overlay.classList.remove('active');
+    renderResult(data, ai);
+
+  } catch(err) {
+    clearInterval(ticker);
+    overlay.classList.remove('active');
+    document.getElementById('resultsArea').innerHTML =
+      '<div class="insight-box risk"><strong>Error</strong>Could not reach the analysis engine. Check your connection and try again.</div>';
+  }
+
+  btn.classList.remove('loading'); btn.disabled = false;
+}
+
+// ─────────────────────────────────────────
+//  RENDER RESULT
+// ─────────────────────────────────────────
+function renderResult(data, ai) {
+  const now = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const w   = data.rollingWindow || data.window;  // rolling always present
+  const pw  = data.periodWindow  || null;          // period only when entered
+
+  // Update savings type dropdown + badge
+  if (ai && ai.autoDetectedSavingsType) {
+    const sel = document.getElementById('savingsType');
+    const opt = Array.from(sel.options).find(o => o.value === ai.autoDetectedSavingsType);
+    if (opt) { sel.value = ai.autoDetectedSavingsType; sel.classList.add('auto-set'); }
+    const tmap = {
+      'Material / Sourcing (Monetary)':{ cls:'material', icon:'💰' },
+      'Standard Work Variance (Time)': { cls:'variance',  icon:'⏱' },
+      'Yield / ROI Improvements':      { cls:'yield',     icon:'📈' },
+      'Other':                         { cls:'other',     icon:'🔹' },
+    };
+    const t = tmap[ai.autoDetectedSavingsType] || { cls:'other', icon:'🔹' };
+    const badge = document.getElementById('savingsTypeBadge');
+    badge.className = 'savings-type-badge visible ' + t.cls;
+    document.getElementById('savingsTypeBadgeText').textContent =
+      t.icon + ' Auto-detected: ' + ai.autoDetectedSavingsType +
+      (ai.savingsTypeConfidence ? ' · ' + ai.savingsTypeConfidence + ' confidence' : '');
+  }
+
+  const score    = ai && ai.impactScore != null ? ai.impactScore : '—';
+  const scoreC   = score >= 70 ? 'green' : score >= 40 ? 'amber' : 'red';
+  const confC    = ai && ai.confidenceLevel === 'High' ? 'green' : ai && ai.confidenceLevel === 'Medium' ? 'amber' : 'red';
+  const detType  = (ai && ai.autoDetectedSavingsType) || data.savingsType || '';
+  const stC = {
+    'Material / Sourcing (Monetary)':{ bg:'#e8f0fe', bdr:'#1a3a8a', col:'#1a3a8a', icon:'💰' },
+    'Standard Work Variance (Time)': { bg:'#e8f5ee', bdr:'#2a6e4e', col:'#0a3a1f', icon:'⏱' },
+    'Yield / ROI Improvements':      { bg:'#fef6e0', bdr:'#c8971f', col:'#6a3f0a', icon:'📈' },
+    'Other':                         { bg:'#f0ede8', bdr:'#7a756b', col:'#4a4540', icon:'🔹' },
+  };
+  const st = stC[detType] || stC['Other'];
+
+  const curY     = (ai && ai.currentYear)        || (w && w.currentYear)     || new Date().getFullYear();
+  const moInYear = (ai && ai.currentYearMonths)   || (w && w.monthsInYear)   || 12;
+  const fraction = (ai && ai.currentYearFraction) || (moInYear + '/12');
+  const pct      = (ai && ai.currentYearPct)      || Math.round((moInYear/12)*100);
+
+  // Rolling window month strip (always shown)
+  const activeMonths = w ? new Set(w.inYearMonths.map(m => m.month)) : new Set([0,1,2,3,4,5,6,7,8,9,10,11]);
+  let stripHtml = '';
+  for (let m = 0; m < 12; m++) {
+    const on = activeMonths.has(m);
+    stripHtml += '<div class="month-strip-cell ' + (on ? 'ms-in' : 'ms-out') + '">'
+               + '<span class="ms-name">' + MO[m] + '</span>'
+               + (on ? '✓' : '—') + '</div>';
+  }
+
+  // Period month strip (only when comparison period entered)
+  let periodStripHtml = '';
+  if (data.hasPeriod && pw) {
+    const pActive = new Set(pw.inYearMonths.map(m => m.month));
+    for (let m = 0; m < 12; m++) {
+      const on = pActive.has(m);
+      periodStripHtml += '<div class="month-strip-cell ' + (on ? 'ms-in' : 'ms-out') + '">'
+                       + '<span class="ms-name">' + MO[m] + '</span>'
+                       + (on ? '✓' : '—') + '</div>';
+    }
+  }
+
+  const tags  = ((ai && ai.tags)  || [data.ppiTool, data.marketingTactic]).filter(Boolean).slice(0,5);
+  const risks = ((ai && ai.risks) || ['Impact not yet validated','Data quality needs review']).slice(0,2);
+  const opps  = ((ai && ai.opportunities) || ['Scale to other teams','Automate further']).slice(0,2);
+  const steps = ((ai && ai.nextSteps)     || ['Document current state','Measure baseline','Implement solution']).slice(0,4);
+  const stages = ['Define','Measure','Analyze','Improve','Control'];
+  const aStage = (ai && ai.ppiStageRecommendation) || 'Improve';
+
+  document.getElementById('resultsArea').innerHTML = `
+  <div class="result-card">
+    <div class="result-header">
+      <div>
+        <div class="result-project-name">${data.projectName}</div>
+        ${data.hasPeriod ? `<div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--gold);margin-top:.25rem;letter-spacing:.04em">⚡ Period: ${data.periodStart} → ${data.periodEnd}</div>` : ''}
+      </div>
+      <div class="result-meta">
+        ${data.submitterName ? data.submitterName + '<br>' : ''}
+        ${data.region ? (RLABEL[data.region]||data.region) + ' · $' + (data.hourlyRate||'—') + '/hr<br>' : ''}
+        ${now}
+      </div>
+    </div>
+
+    <div class="scorecard">
+      <div class="score-cell">
+        <div class="score-value ${scoreC}">${score}<small style="font-size:.55em">/100</small></div>
+        <div class="score-label">Impact Score</div>
+      </div>
+      <div class="score-cell">
+        <div class="score-value green">${(ai && ai.efficiencyGain)||'—'}</div>
+        <div class="score-label">Efficiency Gain</div>
+      </div>
+      <div class="score-cell">
+        <div class="score-value amber">${(ai && ai.currentYearSavings)||'—'}</div>
+        <div class="score-label">${curY} Savings</div>
+      </div>
+      <div class="score-cell">
+        <div class="score-value ${confC}">${(ai && ai.confidenceLevel)||'—'}</div>
+        <div class="score-label">Confidence</div>
+      </div>
+    </div>
+
+    <div class="savings-breakdown">
+      <div class="sav-cell">
+        <div class="sav-cell-label">12-Month Rolling Savings</div>
+        <div class="sav-cell-value amber">${(ai && ai.totalSavings12Mo)||'—'}</div>
+        <div class="sav-cell-sub">From ${data.dateSubmitted||'—'} · 12-mo rollover</div>
+      </div>
+      <div class="sav-cell">
+        <div class="sav-cell-label">Year ${curY} Rolling Credit</div>
+        <div class="sav-cell-value green">${(ai && ai.currentYearSavings)||'—'}</div>
+        <div class="sav-cell-sub">${fraction} months = ${pct}% of annual</div>
+      </div>
+    </div>
+
+    ${data.hasPeriod ? `
+    <div class="savings-breakdown" style="border-top:2px solid var(--gold)">
+      <div class="sav-cell" style="background:var(--highlight)">
+        <div class="sav-cell-label" style="color:var(--gold)">📅 Period Savings (${data.periodStart} → ${data.periodEnd})</div>
+        <div class="sav-cell-value amber">${(ai && ai.periodSavingsTotal)||'—'}</div>
+        <div class="sav-cell-sub">${pw ? pw.totalMonths + ' comparison months' : 'comparison period'} · ${(ai && ai.periodMonthlyRate) ? ai.periodMonthlyRate + '/mo' : ''}</div>
+      </div>
+      <div class="sav-cell" style="background:var(--highlight)">
+        <div class="sav-cell-label" style="color:var(--gold)">Year ${curY} Rolled Credit</div>
+        <div class="sav-cell-value green">${(ai && ai.periodYearSavings)||'—'}</div>
+        <div class="sav-cell-sub">${pw ? 'monthly rate × ' + pw.monthsInYear + ' rolling months in ' + curY : ''}</div>
+      </div>
+    </div>` : ''}
+
+    <div style="padding:.75rem 1.2rem;border-bottom:1px solid var(--border);background:var(--paper)">
+      <div style="font-family:'DM Mono',monospace;font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.4rem">
+        Rolling window — months credited in ${curY}
+      </div>
+      <div class="month-strip">${stripHtml}</div>
+      ${data.hasPeriod && periodStripHtml ? `
+      <div style="font-family:'DM Mono',monospace;font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);margin-bottom:.4rem;margin-top:.75rem">
+        Comparison period — months in ${curY}
+      </div>
+      <div class="month-strip">${periodStripHtml}</div>` : ''}
+    </div>
+
+    <div class="analysis-body">
+
+      ${detType ? `
+      <div class="analysis-section">
+        <div class="analysis-title">Auto-Detected Productivity Savings Type</div>
+        <div style="background:${st.bg};border:1.5px solid ${st.bdr};border-radius:8px;padding:.85rem 1.1rem;display:flex;flex-direction:column;gap:.4rem">
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <span style="font-size:1.1rem">${st.icon}</span>
+            <strong style="font-family:'DM Serif Display',serif;font-size:1.05rem;color:${st.col}">${detType}</strong>
+            ${ai && ai.savingsTypeConfidence ? `<span style="font-family:'DM Mono',monospace;font-size:.62rem;padding:.12rem .4rem;border-radius:3px;background:${st.bdr};color:#fff;letter-spacing:.06em">${ai.savingsTypeConfidence.toUpperCase()} CONF.</span>` : ''}
+          </div>
+          ${ai && ai.savingsTypeReasoning ? `<div style="font-size:.82rem;color:${st.col};line-height:1.55;opacity:.85">${ai.savingsTypeReasoning}</div>` : ''}
+        </div>
+      </div>` : ''}
+
+      <div class="analysis-section">
+        <div class="analysis-title">Executive Summary</div>
+        <div class="analysis-text">${(ai && ai.executiveSummary)||'Analysis unavailable — check inputs.'}</div>
+        <div class="tags">
+          ${tags.map(t => `<span class="tag tag-blue">${t}</span>`).join('')}
+          ${data.marketingTeam ? `<span class="tag tag-amber">${data.marketingTeam}</span>` : ''}
+          ${data.projectStatus ? `<span class="tag tag-green">${data.projectStatus}</span>` : ''}
+        </div>
+      </div>
+
+      <div class="analysis-section">
+        <div class="analysis-title">Impact Calculation Breakdown</div>
+        <div class="analysis-text">${(ai && ai.impactBreakdown)||'—'}</div>
+        ${ai && ai.hourlyRateUsed ? `<div style="display:inline-flex;align-items:center;gap:.4rem;margin-top:.5rem;padding:.25rem .6rem;background:var(--ink);color:var(--gold);border-radius:4px;font-family:'DM Mono',monospace;font-size:.68rem;letter-spacing:.06em">⚡ ${ai.hourlyRateUsed}</div>` : ''}
+      </div>
+
+      ${ai && ai.roiMultiplier && ai.roiMultiplier !== 'null' && ai.roiMultiplier !== 'N/A' ? `
+      <div class="analysis-section">
+        <div class="analysis-title">ROI &amp; Benchmark Context</div>
+        <div class="analysis-text"><strong style="font-family:'DM Serif Display',serif;font-size:1.1rem">${ai.roiMultiplier} ROI</strong>${ai.benchmarkContext ? ' — ' + ai.benchmarkContext : ''}</div>
+      </div>` : ''}
+
+      <div class="analysis-section">
+        <div class="analysis-title">PPI Stage Recommendation (DMAIC)</div>
+        <div class="timeline">
+          ${stages.map(s => `<div class="timeline-step ${s===aStage?'active':''}"><span class="step-n">${s===aStage?'▶':'○'}</span>${s}</div>`).join('')}
+        </div>
+        <div class="analysis-text" style="margin-top:.6rem;font-size:.8rem">${(ai && ai.ppiAlignment)||''}</div>
+      </div>
+
+      <div class="analysis-section">
+        <div class="analysis-title">Risks &amp; Opportunities</div>
+        <div class="insight-grid">
+          ${risks.map(r => `<div class="insight-box risk"><strong>Risk</strong>${r}</div>`).join('')}
+          ${opps.map(o => `<div class="insight-box opportunity"><strong>Opportunity</strong>${o}</div>`).join('')}
+        </div>
+      </div>
+
+      <div class="analysis-section">
+        <div class="analysis-title">Recommended Next Steps</div>
+        ${steps.map((s,i) => `
+        <div style="display:flex;gap:.6rem;align-items:flex-start;margin-bottom:.45rem">
+          <span style="font-family:'DM Mono',monospace;font-size:.7rem;background:var(--ink);color:var(--paper);padding:.15rem .4rem;border-radius:3px;flex-shrink:0;margin-top:1px">${String(i+1).padStart(2,'0')}</span>
+          <span style="font-size:.83rem;line-height:1.5">${s}</span>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  projectHistory.unshift({ data: {...data, detType}, ai, date: now });
+  renderHistory();
+}
+
+// ─────────────────────────────────────────
+//  HISTORY
+// ─────────────────────────────────────────
+function renderHistory() {
+  if (projectHistory.length <= 1) return;
+  document.getElementById('historySection').style.display = 'block';
+  const colors = ['#2a6e4e','#c8971f','#1a56b0','#c84b2f'];
+  document.getElementById('historyList').innerHTML = projectHistory.slice(1).map((h,i) => `
+    <div class="history-item" onclick="restoreHistory(${i+1})">
+      <div class="history-dot" style="background:${colors[i%4]}"></div>
+      <div class="history-info">
+        <div class="history-name">${h.data.projectName}</div>
+        <div class="history-meta">${h.data.region||'No region'} · ${h.date}</div>
+      </div>
+      <div class="history-impact">${(h.ai && h.ai.currentYearSavings)||(h.ai && h.ai.totalSavings12Mo)||'—'}</div>
+    </div>`).join('');
+}
+
+function restoreHistory(idx) {
+  const h = projectHistory[idx];
+  renderResult(h.data, h.ai);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ─────────────────────────────────────────
+//  SG&A YIELD / ROI CALCULATOR — Paid Media only
+//  Formula: (PY Expense / PY Revenue) × (CY Revenue − CY Expense)
+// ─────────────────────────────────────────
+// Tactics that trigger the SG&A calculator (open automatically)
+const SGA_TACTICS = new Set([
+  'Content / SEO',
+  'Paid Search (SEM)',
+  'Paid Social',
+  'Organic Social',
+  'Reporting & Analytics',
+]);
+
+function onTeamChange() {
+  // Team change no longer drives SGA — tactic selection does.
+  // Nothing extra needed here for now; kept for future team-level logic.
+}
+
+function onTacticChange() {
+  const tactic  = document.getElementById('marketingTactic').value;
+  const wrapper = document.getElementById('sgaWrapper');
+  const panel   = document.getElementById('sgaPanel');
+  const toggle  = document.getElementById('sgaToggle');
+  const arrow   = document.getElementById('sgaArrow');
+
+  if (SGA_TACTICS.has(tactic)) {
+    wrapper.style.display = 'block';
+    wrapper.style.animation = 'fadeIn .3s ease';
+    // Auto-open the panel
+    panel.classList.add('open');
+    toggle.classList.add('open');
+    arrow.textContent = '▲';
+  } else {
+    wrapper.style.display = 'none';
+    panel.classList.remove('open');
+    toggle.classList.remove('open');
+    arrow.textContent = '▼';
+  }
+}
+
+function toggleSGA() {
+  const toggle = document.getElementById('sgaToggle');
+  const panel  = document.getElementById('sgaPanel');
+  const arrow  = document.getElementById('sgaArrow');
+  const open   = panel.classList.toggle('open');
+  toggle.classList.toggle('open', open);
+  arrow.textContent = open ? '▲' : '▼';
+}
+
+function calcSGA() {
+  const pyRev = parseFloat(document.getElementById('sgaPYRev').value);
+  const cyRev = parseFloat(document.getElementById('sgaCYRev').value);
+  const pyExp = parseFloat(document.getElementById('sgaPYExp').value);
+  const cyExp = parseFloat(document.getElementById('sgaCYExp').value);
+
+  if ([pyRev, cyRev, pyExp, cyExp].some(isNaN)) return;
+  if (pyRev === 0) return;
+
+  // Step 1 — SG&A formula: (PY Expense / PY Revenue) × (CY Revenue − CY Expense)
+  const expRatio   = pyExp / pyRev;
+  const cyNetRev   = cyRev - cyExp;
+  const ppiSavings = expRatio * cyNetRev;   // total savings for the comparison period
+  const isPositive = ppiSavings >= 0;
+
+  // Step 2 — Monthly rate: divide by number of comparison months
+  const ps = document.getElementById('periodStart').value;
+  const pe = document.getElementById('periodEnd').value;
+  const hasPeriod = ps && pe && ps <= pe;
+
+  // Count comparison months (period length)
+  let compMonths = 1;
+  if (hasPeriod) {
+    const s = new Date(ps + 'T00:00:00');
+    const e = new Date(pe + 'T00:00:00');
+    compMonths = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth()) + 1;
+    compMonths = Math.max(1, compMonths);
+  }
+  const monthlyRate = ppiSavings / compMonths;
+
+  // Step 3 — Rolling window: months in current year from submission date
+  const dateStr     = document.getElementById('dateSubmitted').value;
+  const rollingW    = computeSavingsWindow(dateStr);
+  const rollingMo   = rollingW ? rollingW.monthsInYear : 12;
+  const rolledSavings = monthlyRate * rollingMo;
+
+  const fmt  = v => '$' + Math.abs(v).toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+  const fmtR = v => (v * 100).toFixed(1) + '%';
+  const fmtM = v => '$' + Math.abs(v).toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0}) + '/mo';
+
+  document.getElementById('sgaResult').classList.add('visible');
+  const mainEl = document.getElementById('sgaMainResult');
+  mainEl.className = 'sga-result-main' + (isPositive ? '' : ' negative');
+  mainEl.textContent = (isPositive ? '+' : '−') + fmt(rolledSavings) + ' — ' + new Date().getFullYear() + ' Credit';
+
+  document.getElementById('sgaSteps').innerHTML =
+    '<strong style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink)">SG&A Formula</strong><br>' +
+    'Exp ratio: <span class="step-val">' + fmt(pyExp) + ' ÷ ' + fmt(pyRev) + ' = ' + fmtR(expRatio) + '</span><br>' +
+    'Net CY revenue: <span class="step-val">' + fmt(cyRev) + ' − ' + fmt(cyExp) + ' = ' + fmt(cyNetRev) + '</span><br>' +
+    'Period savings: <span class="step-val">' + fmtR(expRatio) + ' × ' + fmt(cyNetRev) + ' = ' + (isPositive?'+':'−') + fmt(ppiSavings) + '</span><br><br>' +
+    '<strong style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink)">Monthly Rate</strong><br>' +
+    fmt(ppiSavings) + ' ÷ ' + compMonths + ' comparison months = <span class="step-val">' + fmtM(monthlyRate) + '</span><br><br>' +
+    '<strong style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink)">12-Month Rolling Spread (' + (rollingW ? rollingW.currentYear : new Date().getFullYear()) + ')</strong><br>' +
+    fmtM(monthlyRate) + ' × ' + rollingMo + ' months in current year = <span class="step-val" style="color:var(--accent2)">' + (isPositive?'+':'−') + fmt(rolledSavings) + '</span><br>' +
+    (rollingW ? '<span style="color:var(--muted);font-size:.62rem">Rolling window: ' + rollingW.windowStartLabel + ' → ' + MO[rollingW.windowEndDate.getMonth()] + ' ' + rollingW.windowEndDate.getFullYear() + ' · ' + rollingMo + '/12 months in ' + rollingW.currentYear + '</span><br>' : '') +
+    (isPositive
+      ? '<span style="color:var(--accent2)">✓ Positive — efficiency gain spread over current year</span>'
+      : '<span style="color:var(--accent)">⚠ Negative — spend exceeds prior year efficiency ratio</span>');
+
+  window._sgaResult = {
+    ppiSavings, pyRev, cyRev, pyExp, cyExp, expRatio, cyNetRev,
+    compMonths, monthlyRate, rollingMo, rolledSavings, isPositive,
+    rollingW
+  };
+}
+
+function injectSGAResult() {
+  const r = window._sgaResult;
+  if (!r) return;
+  const fmt  = v => '$' + Math.abs(v).toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+  const fmtR = v => (v * 100).toFixed(1) + '%';
+  const curY = r.rollingW ? r.rollingW.currentYear : new Date().getFullYear();
+
+  document.getElementById('savingsCalc').value =
+    'SG&A Yield / ROI — Paid Media (Period-to-Rolling)\n' +
+    '─────────────────────────────────────────\n' +
+    'Past Year:    Revenue ' + fmt(r.pyRev) + '  Expense ' + fmt(r.pyExp) + '  (ratio ' + fmtR(r.expRatio) + ')\n' +
+    'Current Year: Revenue ' + fmt(r.cyRev) + '  Expense ' + fmt(r.cyExp) + '  (net ' + fmt(r.cyNetRev) + ')\n' +
+    'Period PPI Savings: (' + fmtR(r.expRatio) + ') × ' + fmt(r.cyNetRev) + ' = ' + fmt(r.ppiSavings) + '\n' +
+    '÷ ' + r.compMonths + ' comparison months = $' + Math.abs(r.monthlyRate).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}) + '/mo\n' +
+    '× ' + r.rollingMo + ' months in ' + curY + ' rolling window = ' + (r.isPositive?'+':'') + fmt(r.rolledSavings) + ' (' + curY + ' credit)';
+
+  document.getElementById('savingsType').value = 'Yield / ROI Improvements';
+}
+
+// ─────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────
+document.getElementById('dateSubmitted').value = new Date().toISOString().split('T')[0];
+onDateChange();
+</script>
+</body>
+</html>
